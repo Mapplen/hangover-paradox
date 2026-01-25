@@ -1,58 +1,75 @@
 "use client";
 import { useState } from "react";
 
-export default function Home() {
-  const [inputText, setInputText] = useState("");
-  const [response, setResponse] = useState("昨夜の醜態を入力してください。");
+export default function Confessional() {
+  const [confession, setConfession] = useState("");
+  const [judgement, setJudgement] = useState({ censure: "", remedy: "" });
   const [loading, setLoading] = useState(false);
 
-  const sendToBackend = async () => {
-    if (!inputText) return;
+  const submitConfession = async () => {
     setLoading(true);
     try {
-      // バックエンドの /judge エンドポイントを叩く
-      const res = await fetch("http://127.0.0.1:8000/judge", {
+      const res = await fetch("http://localhost:8000/judge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: inputText }),
+        body: JSON.stringify({ text: confession }),
       });
       const data = await res.json();
-      setResponse(data.message);
-    } catch (error) {
-      setResponse("バックエンドが寝ています。あるいはあなたの言葉が酷すぎて拒絶されました。");
+      
+      // AIの返答を【断罪】と【救済】に分割して表示（簡易的なパース）
+      // ※バックエンドの返答形式に合わせて調整してください
+      setJudgement({
+        censure: data.message.split("【救済】")[0].replace("【断罪】", "").trim(),
+        remedy: data.message.includes("【救済】") ? data.message.split("【救済】")[1].trim() : ""
+      });
+    } catch (e) {
+      console.error("通信失敗", e);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-black text-white p-6">
-      <div className="w-full max-w-lg border-2 border-red-900 p-8 rounded-xl bg-gray-900 shadow-2xl">
-        <h1 className="text-3xl font-black mb-6 text-red-600 tracking-tighter">
-          HANGOVER PARADOX
-        </h1>
-        
-        <textarea
-          className="w-full h-32 p-4 bg-black border border-gray-700 rounded-md mb-4 text-green-400 font-mono focus:outline-none focus:border-red-500"
-          placeholder="「昨夜、実はアイツのことがさぁ…」"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-        />
-
-        <button
-          onClick={sendToBackend}
-          disabled={loading}
-          className="w-full py-4 bg-red-800 hover:bg-red-600 text-white font-bold rounded-md transition-all active:scale-95 disabled:opacity-50"
-        >
-          {loading ? "ジャッジ中..." : "罪を報告する"}
-        </button>
-
-        <div className="mt-8 p-4 border-l-4 border-red-600 bg-black">
-          <p className="text-lg italic text-gray-300">
-            {response}
-          </p>
+    <div className="min-h-screen bg-neutral-950 text-neutral-300 flex flex-col items-center justify-center p-4 font-serif">
+      <div className="max-w-2xl w-full space-y-8 border border-neutral-800 p-8 relative overflow-hidden">
+        {/* 格子の装飾（背景にうっすら） */}
+        <div className="absolute inset-0 opacity-5 pointer-events-none" 
+             style={{ backgroundImage: 'linear-gradient(90deg, #fff 1px, transparent 1px), linear-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
         </div>
+
+        <h1 className="text-2xl text-center tracking-[0.2em] text-neutral-500 uppercase">Confessional</h1>
+        
+        <div className="space-y-4 relative">
+          <textarea
+            className="w-full h-40 bg-neutral-900 border border-neutral-700 p-4 text-neutral-200 focus:outline-none focus:border-neutral-500 transition-colors resize-none"
+            placeholder="あなたの罪を、ここに..."
+            value={confession}
+            onChange={(e) => setConfession(e.target.value)}
+          />
+          
+          <button
+            onClick={submitConfession}
+            disabled={loading}
+            className="w-full py-3 border border-neutral-700 hover:bg-neutral-100 hover:text-black transition-all duration-500 tracking-widest uppercase text-sm disabled:opacity-30"
+          >
+            {loading ? "審理中..." : "告白する"}
+          </button>
+        </div>
+
+        {judgement.censure && (
+          <div className="mt-12 space-y-6 animate-in fade-in duration-1000">
+            <div className="border-l-2 border-red-900 pl-4">
+              <span className="text-xs text-red-700 uppercase tracking-tighter">断罪</span>
+              <p className="mt-1 text-lg leading-relaxed">{judgement.censure}</p>
+            </div>
+            
+            <div className="border-l-2 border-neutral-600 pl-4">
+              <span className="text-xs text-neutral-500 uppercase tracking-tighter">救済</span>
+              <p className="mt-1 text-sm text-neutral-400 italic">{judgement.remedy}</p>
+            </div>
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }

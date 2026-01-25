@@ -9,4 +9,8 @@ frontend/.next/
 frontend/out/
 
 # Env
+.envgit ad
 .env
+
+# DB
+confessions.db
